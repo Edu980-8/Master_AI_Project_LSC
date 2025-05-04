@@ -1,0 +1,39 @@
+services:
+  backend:
+    volumes:
+      - ./app:/app/app
+      - ./scripts:/app/scripts
+      - ./pyproject.toml:/app/pyproject.toml
+      - ./uv.lock:/app/uv.lock
+      - ./alembic.ini:/app/alembic.ini
+    environment:
+      - ENV=local
+    command: >
+      uvicorn app.main:app
+      --host 0.0.0.0
+      --port 8000
+      --reload
+      --reload-dir /app/app
+    depends_on:
+      - db
+      - mailcatcher
+
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ensenarte_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  mailcatcher:
+    image: schickling/mailcatcher
+    ports:
+      - "1025:1025"  # SMTP
+      - "1080:1080"  # Web UI
+
+volumes:
+  pgdata:
