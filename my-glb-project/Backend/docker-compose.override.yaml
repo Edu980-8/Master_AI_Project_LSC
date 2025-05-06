@@ -1,4 +1,18 @@
 services:
+  prestart:
+    image: ensenarte-backend:latest
+    entrypoint: ["bash", "/app/scripts/prestart.sh"]
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ENV: local
+    volumes:
+      - ./scripts:/app/scripts
+      - ./app:/app/app
+      - ./pyproject.toml:/app/pyproject.toml
+      - ./uv.lock:/app/uv.lock
+      - ./alembic.ini:/app/alembic.ini
   backend:
     volumes:
       - ./app:/app/app
@@ -15,8 +29,10 @@ services:
       --reload
       --reload-dir /app/app
     depends_on:
-      - db
-      - mailcatcher
+      prestart:
+        condition: service_completed_successfully
+      mailcatcher:
+        condition: service_started
 
   db:
     image: postgres:17
@@ -26,6 +42,11 @@ services:
       POSTGRES_DB: ensenarte_db
     ports:
       - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     volumes:
       - pgdata:/var/lib/postgresql/data
 
